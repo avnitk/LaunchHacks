@@ -100,11 +100,31 @@ export const scheduleMedicationReminder = async (medication, prescriberEmail) =>
 };
 
 export const cancelMedicationReminder = async (medicationId) => {
-  const notifications = await notifee.getTriggerNotifications();
-  for (const { notification, id } of notifications) {
-    if (notification.data && notification.data.medicationId === medicationId) {
-      await notifee.cancelNotification(id);
+  try {
+    const notifications = await notifee.getTriggerNotifications();
+    let found = false;
+    for (const n of notifications) {
+      const notification = n.notification || n;
+      const notifId = notification.id;
+      if (
+        notification.data &&
+        notification.data.medicationId === medicationId
+      ) {
+        if (typeof notifId === 'string' && notifId.length > 0) {
+          found = true;
+          try {
+            await notifee.cancelNotification(notifId);
+          } catch (err) {
+            console.error('Error cancelling notification:', err, 'Notification ID:', notifId);
+          }
+        } else {
+          console.error('Invalid notification id for cancellation:', notifId, notification);
+        }
+      }
     }
+    
+  } catch (error) {
+    console.error('Error in cancelMedicationReminder:', error);
   }
 };
 
